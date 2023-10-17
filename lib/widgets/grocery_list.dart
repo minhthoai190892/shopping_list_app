@@ -25,10 +25,17 @@ class _GroceryListState extends State<GroceryList> {
 
   void _loadItems() async {
     final url = Uri.https(
-        'fluttder-prep-6f6b9-default-rtdb.firebaseio.com', 'shopping-list.json');
+        'flutter-prep-6f6b9-default-rtdb.firebaseio.com', 'shopping-list.json');
     final response = await http.get(url);
+    if (response.body == 'null') {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
     final Map<String, dynamic> listData = json.decode(response.body);
     final List<GroceryItem> loadItems = [];
+    
     if (response.statusCode >= 400) {
       setState(() {
         _error = 'Failed to fetch data. Please try again later';
@@ -70,28 +77,34 @@ class _GroceryListState extends State<GroceryList> {
     });
   }
 
-  void _removeItem(GroceryItem item) {
+  void _removeItem(GroceryItem item) async {
+    final url = Uri.https('flutter-prep-6f6b9-default-rtdb.firebaseio.com',
+        'shopping-list/${item.id}.json');
+
+    final response = await http.delete(url);
     //lấy vị trí item
     final itemIndex = _groceryItems.indexOf(item);
 
     setState(() {
       _groceryItems.remove(item);
     });
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        duration: const Duration(seconds: 3),
-        content: const Text('Item deleted.'),
-        action: SnackBarAction(
-          label: 'Undo.',
-          onPressed: () {
-            setState(() {
-              _groceryItems.insert(itemIndex, item);
-            });
-          },
+    if (response.statusCode >= 400) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          content: const Text('Item deleted.'),
+          action: SnackBarAction(
+            label: 'Undo.',
+            onPressed: () {
+              setState(() {
+                _groceryItems.insert(itemIndex, item);
+              });
+            },
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
